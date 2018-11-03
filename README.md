@@ -18,6 +18,7 @@
 # Usage
 - Linux server에 Node와 MySQL이 설치 되어 있어야 합니다.
 - NodeJS를 위해 3001번 포트를 사용했습니다.
+- MySQL을 위해 3306 포트를 사용했습니다.
 - sudo node server.js
 - URL : ec2-52-79-250-40.ap-northeast-2.compute.amazonaws.com:3001
 - 계정 : ID ---> user1 || user2		/	password ---> 1234 || 2345
