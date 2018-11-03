@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WinterCoding</title>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/latest/js/bootstrap.min.js"></script>
+    <link href="//maxcdn.bootstrapcdn.com/bootstrap/latest/css/bootstrap.min.css" rel="stylesheet">
+    <script src="http://ec2-52-79-250-40.ap-northeast-2.compute.amazonaws.com:3001/socket.io/socket.io.js"></script>
+    <!-- alert form -->
+    <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+    <style>
+
+        body {
+            background: #f8f8f8;
+            padding: 60px 0;
+        }
+
+        #login-form > div {
+            margin: 15px 0;
+        }
+
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="col-md-6 col-md-offset-3 col-sm-8 col-sm-offset-2">
+            <div class="panel panel-success">
+                <div class="panel-heading">
+                    <div class="panel-title">TODO List Login</div>
+                </div>
+                <div class="panel-body">
+                    <div id="login-form">
+                        <div>
+                            <input type="text" id='userid' class="form-control" name="username" placeholder="Username" autofocus>
+                        </div>
+                        <div>
+                            <input type="password" id='userpass' class="form-control" name="password" placeholder="Password">
+                        </div>
+                        <div>
+                            <button id="login" type="submit" class="form-control btn btn-primary">Login</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        var socket=io();
+        
+        function loginClick(){
+            $.post('/trylogin',{
+                id:$('#userid').val(),
+                pass:$('#userpass').val()
+            });
+        }
+        $('#login').on('click',loginClick);
+        document.addEventListener('keydown',function(e){
+            //console.log($('.swal-overlay').hasClass('swal-overlay--show-modal'));
+            if(e.keyCode==13 && $('.swal-overlay').hasClass('swal-overlay--show-modal')==false){
+                loginClick();
+            }
+        });
+        socket.on('login fail',function(){
+            swal("로그인 실패", "ID 혹은 Password가 잘못 되었어요.", "error");
+        });
+        socket.on('login success',function(){
+            socket.close();
+            window.location.href = 'http://ec2-52-79-250-40.ap-northeast-2.compute.amazonaws.com:3001/index.html';
+        });
+    </script>
+</body>
+</html>

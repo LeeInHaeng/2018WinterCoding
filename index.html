@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Winter Coding</title>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+    <script src="http://ec2-52-79-250-40.ap-northeast-2.compute.amazonaws.com:3001/socket.io/socket.io.js"></script>
+    <link rel="stylesheet" href="/css/todolist.css"/>
+    <link rel="stylesheet" href="/css/bootswatch.css"/>
+    
+    <!-- jquery ui -->
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    
+    <!-- alert form -->
+    <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+
+    <input type="hidden" id="userid" value=''>
+    <input type="hidden" id="prechange" value=''>
+</head>
+<div id="myDIV" class="header">
+    <h2>MY To Do List</h2>
+    <input type="text" id="myInput" placeholder="Title...">
+    <span onclick="newElement()" class="addBtn">Add</span>
+</div>
+
+<ul id="myUL">
+</ul>
+
+<div id="detailNode" class="card bg-secondary mb-3" style="max-width: 20rem; position: relative; margin: auto; top:-250px; display: none">
+  <div class="card-header">Detail
+      <span id="tableClose" class="table-close">x</span>
+    </div>
+    <table class="table table-hover">
+        <tbody>
+            <tr class="table-info" style="cursor: pointer">
+              <th scope="row">Title</th>
+              <td id="tableTitle">Column content</td>
+            </tr>
+        </tbody>
+        <tbody>
+            <tr class="table-info" style="cursor: pointer">
+              <th scope="row">Contents</th>
+              <td id="tableContents">Column content</td>
+            </tr>
+        </tbody>
+        <tbody>
+            <tr class="table-info" style="cursor: pointer">
+              <th scope="row">Start time</th>
+              <td id="tableStime">Column content</td>
+            </tr>
+        </tbody>
+        <tbody>
+            <tr class="table-info" style="cursor: pointer">
+              <th scope="row">Deadline</th>
+              <td id="tableDtime">
+                  <span id="tableDtimeText"></span>
+                  <input type="text" id="deadline" style="padding: 0px;">
+              </td>
+            </tr>
+        </tbody>
+        <div id="changeForm" class="form-group has-success" style="display: none;">
+            <input type="text" value="correct value" class="form-control is-valid" id="inputValid">
+            <span id="detailChange" class="detail-change">Change</span>
+        </div>
+    </table>
+</div>
+
+<body>
+    <script>
+        var socket = io();
+        var curTime;
+        socket.emit('index start');
+        socket.on('user info setting', function(data) {
+            $('#userid').val(data.userid);
+            if($('#userid').val()==''){
+                window.location.href='http://ec2-52-79-250-40.ap-northeast-2.compute.amazonaws.com:3001';
+                //alert("잘못된 접근 경로입니다. 로그인 페이지로 이동합니다.");
+                swal("잘못된 접근 경로", "잘못된 접근 경로입니다. 로그인 페이지로 이동합니다.", "error");
+            }
+            else{
+                $('#myDIV').find('h2').text($('#userid').val()+' TODO List');
+                socket.emit('get todolist',{userid: $('#userid').val()});
+            }
+        });
+        socket.on('send todolist',function(data){
+            //console.log(data);
+            // draw list
+            var expireListTitle = [];
+            var expireListDate = [];
+            curTime = data.curTime[0].now;
+            
+            for(var i=0; i<data.queryData.length; i++){
+                var stime = data.queryData[i].stime;
+                stime = stime.split(':');
+                if(data.queryData[i].checked==0)
+                    var insertData = '<li>'+data.queryData[i].title+'\t'+stime[0]+':'+stime[1]+'</li>';
+                else
+                    var insertData = '<li class="checked">'+data.queryData[i].title+'\t'+stime[0]+':'+stime[1]+'</li>';
+                $('#myUL').append(insertData);
+                createButton($('#myUL')[0].children[i]);
+                
+                if(data.queryData[i].etime!==null){
+                    if(curTime>data.queryData[i].etime){
+                        var etime = data.queryData[i].etime;
+                        etime = etime.split('T');
+                        expireListTitle.push(data.queryData[i].title);
+                        expireListDate.push(etime[0]);
+                    }
+                }
+            }
+            //console.log(expireListTitle);
+            if(expireListTitle.length!==0){
+                var expireInfo = ''
+                for(var i=0; i<expireListTitle.length; i++){
+                    expireInfo += expireListTitle[i]+'\t'+expireListDate[i]+'\n';
+                }
+                swal("마감된 일정을 확인해 볼까요?", expireInfo, "info");
+                var idx = 0;
+                for(var i=0; i<$('#myUL').children().length; i++){
+                    var title = $('#myUL').children()[i].innerHTML;
+                    title = title.split('\t')[0];
+                    if(title===expireListTitle[idx]){
+                        $('#myUL').children()[i].classList.add('expired-date');
+                        idx+=1;
+                    }
+                }
+            }
+        });
+        
+        // Create button each list
+        function createButton(node){
+            var delSpan = document.createElement("SPAN");
+            var txt = document.createTextNode("\u00D7");
+            delSpan.className = "close";
+            delSpan.appendChild(txt);
+            node.appendChild(delSpan);
+            delSpan.addEventListener('click',function(e){
+                //console.log("delete!");
+                e.target.parentElement.style.display = "none";
+                socket.emit('delete node',{
+                    userid: $('#userid').val(),
+                    title: e.target.parentElement.textContent.split('\t')[0]
+                });
+            },false);
+            
+            var detailSpan = document.createElement("SPAN");
+            var txt = document.createTextNode("D");
+            detailSpan.className = "details";
+            detailSpan.appendChild(txt);
+            node.appendChild(detailSpan);
+            detailSpan.addEventListener('click',function(e){
+                //console.log("detail!");
+                socket.emit('detail node',{
+                    userid: $('#userid').val(),
+                    title: e.target.parentElement.textContent.split('\t')[0]
+                });
+            },false);
+        }
+        
+        socket.on('show detail node',function(data){
+            //console.log(data[0]);
+            $('#tableTitle').text(data[0].title);
+            $('#tableContents').text(data[0].contents);
+            var stime = data[0].stime;
+            stime = stime.split(':');
+            $('#tableStime').text(stime[0]+':'+stime[1]);
+            if(data[0].etime!==null){
+                var etime = data[0].etime;
+                etime = etime.split('T');
+                $('#tableDtimeText').text(etime[0]);
+            }
+            else{
+                $('#tableDtimeText').text('정해지지 않음');
+            }
+            $('#detailNode').css("display","none");
+            $('#changeForm').css("display","none");
+            $('#detailNode').show("fold", {}, 300);
+            $('#deadline').val('');
+            $('#prechange').val(data[0].title);
+            
+            $('#ui-datepicker-div').css("display","none");
+        });
+        
+        $('#tableClose').click(function(){
+            $('#detailNode').hide("fold", {}, 300);
+            $('#changeForm').css("display","none");
+        });
+        
+        // Add a "checked" symbol when clicking on a list item
+        var list = document.querySelector('ul');
+        list.addEventListener('click', function(ev) {
+            //console.log("check!");
+          if (ev.target.tagName === 'LI') {
+              ev.target.classList.toggle('checked');
+              socket.emit('checked control',{
+                  userid: $('#userid').val(),
+                  title: ev.target.textContent.split('\t')[0],
+                  checked: ev.target.className
+              });
+          }
+        }, false);
+        
+        // Create a new list item when clicking on the "Add" button
+        function newElement() {
+            //console.log("insert!");
+            var li = document.createElement("li");
+            var inputValue = document.getElementById("myInput").value;
+            inputValue+='\t13:00';
+            var t = document.createTextNode(inputValue);
+            li.appendChild(t);
+            if (inputValue == '\t13:00') {
+              //alert("You must write something!");
+                swal("데이터 입력", "오늘 할 일을 입력해 주세요", "info");
+            } else {
+              document.getElementById("myUL").appendChild(li);
+              socket.emit('insert node',{
+                  userid: $('#userid').val(),
+                  title: inputValue.split('\t')[0]
+              });
+            }
+            document.getElementById("myInput").value = "";
+            
+            createButton(li);
+        }
+        
+        // table modify
+        $('#tableTitle').click(function(){
+            $('#changeForm').css("display","block");
+            $('#changeForm').children("*").css('display', "block");
+            $('#inputValid').val($('#tableTitle').text());
+            $('#inputValid').select();
+            $('#inputValid').off();
+            $('#inputValid').change(function(){
+                if($('#inputValid').val()!=='')
+                    $('#tableTitle').text($('#inputValid').val());
+            });
+        });
+        $('#tableContents').click(function(){
+            $('#changeForm').css("display","block");
+            $('#changeForm').children("*").css('display', "block");
+            $('#inputValid').val($('#tableContents').text());
+            $('#inputValid').select();
+            $('#inputValid').off();
+            $('#inputValid').change(function(){
+                if($('#inputValid').val()!=='')
+                    $('#tableContents').text($('#inputValid').val());
+            });
+        });
+        $('#tableStime').click(function(){
+            $('#changeForm').css("display","block");
+            $('#changeForm').children("*").css('display', "block");
+            $('#inputValid').val($('#tableStime').text());
+            $('#inputValid').select();
+            $('#inputValid').off();
+            $('#inputValid').change(function(){
+                if($('#inputValid').val()!==''){
+                    var str = $('#inputValid').val();
+                    var re = /^\d{2}:\d{2}$/;
+                    if(str.match(re)){
+                        str = str.split(':');
+                        if(str[0]>23){
+                            //alert("Invalid value hour please 00~23");
+                            swal("시간이 잘못되었어요", "시간을 00~23 사이로 입력해 주세요", "info");
+                            $('#inputValid').val($('#tableStime').text());
+                            $('#inputValid').select();
+                        }
+                        else if(str[1]>59){
+                            //alert("Invalid value hour please 00~59");
+                            swal("분이 잘못되었어요", "분을 00~59 사이로 입력해 주세요", "info");
+                            $('#inputValid').val($('#tableStime').text());
+                            $('#inputValid').select();
+                        }
+                        else
+                            $('#tableStime').text($('#inputValid').val());
+                    }
+                    else{
+                        //alert("Please format HH:MM");
+                        swal("입력 포맷이 잘못되었어요", "HH:MM 포맷으로 입력해 주세요", "info");
+                        $('#inputValid').val($('#tableStime').text());
+                        $('#inputValid').select();
+                    }  
+                }
+            });
+        });
+
+        $('#deadline').click(function(){
+            $('#changeForm').css("display","block");
+            $('#inputValid').css("display","none");
+            $('#ui-datepicker-div').css("display","block");
+        });
+        $('#detailChange').click(function(e){
+            socket.emit("detail change",{
+                userid: $('#userid').val(),
+                title: $('#tableTitle').text(),
+                contents: $('#tableContents').text(),
+                stime: $('#tableStime').text()+":00",
+                dtime: $('#deadline').val(),
+                pretitle: $('#prechange').val()
+            });
+        });
+        socket.on('detail change success',function(data){
+            //console.log(data);
+            var changeDIV;
+            for(var i=0; i<$('#myUL').find('li').length; i++){
+                if($('#prechange').val()===$('#myUL').find('li')[i].innerHTML.split('\t')[0]){
+                    changeDIV = $('#myUL').find('li')[i];
+                    var stime = data.stime;
+                    stime = stime.split(':');
+                    $('#myUL').find('li')[i].innerHTML = data.title+'\t'+stime[0]+':'+stime[1];
+                    createButton($('#myUL').find('li')[i]);
+                    $('#prechange').val(data.title);
+                    break
+                }
+            }
+            if(data.dtime!=''){
+                //console.log(changeDIV);
+                if(curTime<data.dtime){
+                    changeDIV.classList.remove('expired-date');
+                }
+                else{
+                    changeDIV.classList.add('expired-date');
+                }
+                $('#tableDtimeText').text(data.dtime);
+            }
+            $('#deadline').val('');
+            //alert("detail change success!");
+            swal("디테일 변경 성공!", "일정이 무사히 변경 되었어요", "success");
+        });
+        
+        document.addEventListener('keydown',function(e){
+            if(e.keyCode==13 && $('.swal-overlay').hasClass('swal-overlay--show-modal')==false && $('#detailNode').css("display")=='none'){
+                newElement();
+            }
+        });
+        
+        $(function(){
+            $('#detailNode').draggable();
+            $('#myUL').sortable({
+               update: function(event, ui) {
+                   var priority = [];
+                   for(var i=0; i<$('#myUL').children().length; i++){
+                       var tmp = $('#myUL').children()[i].innerHTML;
+                       tmp = tmp.split('\t');
+                       priority.push(tmp[0]);
+                   }
+                   socket.emit('priority change',{
+                       userid: $('#userid').val(),
+                       priority: priority
+                   });
+               }
+            });
+            $('#deadline').datepicker({
+                dateFormat: 'yy-mm-dd',
+                onClose: function (){$(this).focusout();},
+                onSelect: function (){$(this).focus();}
+            });
+            $('#deadline').attr('readonly', 'readonly');
+        });
+    </script>
+</body>
+
+</html>
