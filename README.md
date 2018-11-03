@@ -23,7 +23,8 @@
 - 계정 : ID ---> user1 || user2		/	password ---> 1234 || 2345
 
 # Demo Video
-
+- http://com-topia.tistory.com/
+- web 카테고리 ---> 제목 : 2018윈터코딩 웹프로젝트 TODO LIST
 
 # Reference
 - Login Form : https://zetawiki.com/wiki/%EB%B6%80%ED%8A%B8%EC%8A%A4%ED%8A%B8%EB%9E%A9_%EB%A1%9C%EA%B7%B8%EC%9D%B8_%ED%8F%BC
