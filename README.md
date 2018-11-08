@@ -20,11 +20,11 @@
 - NodeJS를 위해 3001번 포트를 사용했습니다.
 - MySQL을 위해 3306 포트를 사용했습니다.
 - sudo node server.js
-- URL : ec2-52-79-250-40.ap-northeast-2.compute.amazonaws.com:3001
+- URL : http://ec2-52-79-250-40.ap-northeast-2.compute.amazonaws.com:3001
 - 계정 : ID ---> user1 || user2		/	password ---> 1234 || 2345
 
 # Demo Video
-- http://com-topia.tistory.com/
+- http://com-topia.tistory.com/38
 - web 카테고리 ---> 제목 : 2018윈터코딩 웹프로젝트 TODO LIST
 
 # Reference
